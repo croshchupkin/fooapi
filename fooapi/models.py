@@ -11,7 +11,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.Unicode(128), nullable=False)
-    created_at = db.Column(db.DateTime(), default=datetime.utcnow,index=True,
+    created_at = db.Column(db.DateTime(), default=datetime.utcnow, index=True,
                            nullable=False)
 
 
@@ -32,5 +32,6 @@ class Contact(db.Model):
     phone_no = db.Column(db.String(13), nullable=False, default='')
     email = db.Column(db.String(128), nullable=False, default='')
     type = db.Column(db.SmallInteger(), nullable=False)
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
     user = db.relationship('User', backref=db.backref('contacts'),
                            lazy='dynamic')
