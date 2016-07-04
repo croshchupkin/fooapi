@@ -12,7 +12,8 @@ def create_app(config_module='fooapi.settings',
         app.config.from_envvar(additional_config_envvar_name)
 
     _init_db(app)
-    _init_views(app)
+    _init_api(app)
+    return app
 
 
 def _init_db(app):
@@ -20,6 +21,7 @@ def _init_db(app):
     db.init_app(app)
 
 
-def _init_views(app):
+def _init_api(app):
     from fooapi.api import api
+    api.ui = app.config['ENABLE_SWAGGER_UI']
     api.init_app(app)

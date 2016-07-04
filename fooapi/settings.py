@@ -1,0 +1,3 @@
+# -*- coding: utf-8 -*-
+ENABLE_SWAGGER_UI = True
+SQLALCHEMY_TRACK_MODIFICATIONS = False
