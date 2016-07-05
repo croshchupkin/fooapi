@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from flask.ext.restplus import Api
-from flask.ext.restplus import Resource
+from flask_restplus import Api
+from flask_restplus import Resource
 
 
 api = Api()
@@ -23,6 +23,9 @@ class UserContacts(Resource):
     def post(self, user_id):
         pass
 
+    def delete(self, user_id):
+        pass
+
 
 @api.route('/users/<int:user_id>')
 class SingleUser(Resource):
@@ -32,6 +35,9 @@ class SingleUser(Resource):
     def put(self, user_id):
         pass
 
+    def delete(self, user_id):
+        pass
+
 
 @api.route('/contacts/<int:contact_id>')
 class SingleContact(Resource):
@@ -39,4 +45,7 @@ class SingleContact(Resource):
         pass
 
     def put(self, contact_id):
+        pass
+
+    def delete(self, contact_id):
         pass

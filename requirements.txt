@@ -12,6 +12,7 @@ functools32==3.2.3-2
 itsdangerous==0.24
 jsonschema==2.5.1
 marshmallow==2.8.0
+psycopg2==2.6.1
 python-dateutil==2.5.3
 pytz==2016.4
 six==1.10.0

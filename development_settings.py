@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import os
-
+"""
+Sample "additional settings file" for the application.
+"""
 DEBUG = True
-SQLALCHEMY_DATABASE_URI = 'sqlite:///{path}/fooapi.db'.format(
-    path=os.path.expanduser('~'))
+SQLALCHEMY_DATABASE_URI = 'postgresql://fooapi:fooapi@localhost/fooapi'
