@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
+from flask import request
 from flask_restplus import Api
 from flask_restplus import Resource
+
+from fooapi.data_retrieval import (
+    get_users_list)
+from fooapi.schemata import LimitOffsetSchema, UserSchema, ContactSchema
 
 
 api = Api()
@@ -9,7 +14,12 @@ api = Api()
 @api.route('/users')
 class Users(Resource):
     def get(self):
-        pass
+        res = LimitOffsetSchema().load(request.args)
+        users, total = get_users_list(**res.data)
+        return {
+            'total': total,
+            'results': users
+        }
 
     def post(self):
         pass
