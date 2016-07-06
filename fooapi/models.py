@@ -8,7 +8,13 @@ from marshmallow import utils
 db = SQLAlchemy()
 
 
-class Contact(db.Model):
+class SetFieldsMixin(object):
+    def set_fields(self, data):
+        for name, val in data.iteritems():
+            setattr(name, val)
+
+
+class Contact(db.Model, SetFieldsMixin):
     __tablename__ = 'contacts'
 
     TYPE_HOME = 1
@@ -22,8 +28,8 @@ class Contact(db.Model):
     NAMES_TO_TYPES = {v:k for k,v in TYPES_TO_NAMES.iteritems()}
 
     id = db.Column(db.Integer(), primary_key=True)
-    phone_no = db.Column(db.String(30), nullable=False, default='')
-    email = db.Column(db.String(128), nullable=False, default='')
+    phone_no = db.Column(db.String(30), default=None)
+    email = db.Column(db.String(128), default=None)
     created_at = db.Column(db.DateTime(), default=datetime.utcnow, index=True,
                            nullable=False)
     type = db.Column(db.SmallInteger(), nullable=False, default=TYPE_OTHER)
@@ -35,7 +41,7 @@ class Contact(db.Model):
 
     def __repr__(self):
         return ('<Contact id={id}, phone_no={phone}, email={email}, '
-                'type={type}>, created_at={created_at}').format(
+                'type={type}, created_at={created_at}>').format(
                     id=self.id,
                     phone=self.phone_no,
                     email=self.email,
@@ -43,7 +49,7 @@ class Contact(db.Model):
                     created_at=utils.isoformat(self.created_at))
 
 
-class User(db.Model):
+class User(db.Model, SetFieldsMixin):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer(), primary_key=True)

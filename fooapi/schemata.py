@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from werkzeug.local import LocalProxy
 from flask import current_app
 from marshmallow import Schema, fields, validate, decorators
 import phonenumbers
@@ -12,7 +11,7 @@ class PhoneNumber(validate.Validator):
         try:
             num = phonenumbers.parse(value)
         except phonenumbers.phonenumberutil.NumberParseException as e:
-            raise validate.ValidationError(str(e))
+            raise validate.ValidationError(e.message)
 
         if not phonenumbers.is_possible_number(num):
             raise validate.ValidationError('Such phone number is impossible.')
@@ -29,7 +28,7 @@ class ContactSchema(Schema):
     id = fields.Integer(dump_only=True)
     phone_no = fields.String(validate=(validate.Length(min=1, max=30),
                                        PhoneNumber()))
-    email = fields.Email()
+    email = fields.String(validate=validate.Email())
     type_dumped = fields.Integer(
         dump_only=True,
         attribute='type',
@@ -44,6 +43,18 @@ class ContactSchema(Schema):
     class Meta(object):
         ordered = True
         strict = True
+
+    @decorators.validates_schema
+    def validate_schema(self, data):
+        """
+        Validate that at least one parameter is present in the data.
+        """
+        if self.context.get('is_POST') and not ('phone_no' in data or 'email' in data):
+            raise validate.ValidationError(
+                'At least one of the phone number or the email must be provided.')
+        elif len(data) < 1:
+            raise validate.ValidationError(
+                'At least one attribute value must be provided.')
 
     @decorators.post_load
     def post_load(self, data):
@@ -79,9 +90,10 @@ class ContactSchema(Schema):
 
 class UserSchema(Schema):
     id = fields.Integer(dump_only=True)
-    name = fields.String(validate=validate.Length(min=1, max=128))
+    name = fields.String(validate=validate.Length(min=1, max=128),
+                         required=True)
     created_at = fields.DateTime(format='iso', dump_only=True)
-    contacts = fields.Nested(ContactSchema, many=True)
+    contacts = fields.Nested(ContactSchema, many=True, dump_only=True)
 
     class Meta(object):
         ordered = True
