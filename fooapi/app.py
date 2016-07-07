@@ -9,7 +9,7 @@ def create_app(
         additional_config_envvar_name='FOOAPI_ADDITIONAL_SETTINGS_PATH'):
     app = Flask('fooapi')
     app.config.from_object(config_module)
-    if additional_config_envvar_name in os.environ:
+    if not app.config['TESTING'] or additional_config_envvar_name in os.environ:
         app.config.from_envvar(additional_config_envvar_name)
 
     _init_db(app)

@@ -8,6 +8,10 @@ from fooapi.models import Contact
 
 class PhoneNumber(validate.Validator):
     def __call__(self, value):
+        # skip empty values (to allow us to clear the phone value)
+        if not len(value):
+            return value
+
         try:
             num = phonenumbers.parse(value)
         except phonenumbers.phonenumberutil.NumberParseException as e:
@@ -19,6 +23,16 @@ class PhoneNumber(validate.Validator):
         return value
 
 
+class Email(validate.Email):
+    """
+    Same as marshmallow's Email validator, but allows empty strings.
+    """
+    def __call__(self, value):
+        if not len(value):
+            return value
+        return super(Email, self).__call__(value)
+
+
 class LimitOffsetSchema(Schema):
     limit = fields.Integer(missing=None, validate=validate.Range(min=1))
     offset = fields.Integer(missing=None, validate=validate.Range(min=1))
@@ -26,35 +40,31 @@ class LimitOffsetSchema(Schema):
 
 class ContactSchema(Schema):
     id = fields.Integer(dump_only=True)
-    phone_no = fields.String(validate=(validate.Length(min=1, max=30),
-                                       PhoneNumber()))
-    email = fields.String(validate=validate.Email())
+    phone_no = fields.String(
+        required=True,
+        validate=(validate.Length(max=30), PhoneNumber()))
+    email = fields.String(
+        required=True,
+        validate=(validate.Length(max=128), Email()))
     type_dumped = fields.Integer(
         dump_only=True,
         attribute='type',
         dump_to='type',
         validate=validate.OneOf(Contact.TYPES_TO_NAMES.keys()))
-    type_loaded = fields.String(
-        load_from='type',
+    type = fields.String(
+        required=True,
         load_only=True,
-        load_to='type',
         validate=validate.OneOf(Contact.NAMES_TO_TYPES.keys()))
 
     class Meta(object):
         ordered = True
         strict = True
 
-    @decorators.validates_schema
+    @decorators.validates_schema(skip_on_field_errors=True)
     def validate_schema(self, data):
-        """
-        Validate that at least one parameter is present in the data.
-        """
-        if self.context.get('is_POST') and not ('phone_no' in data or 'email' in data):
+        if not len(data['email'].strip()) and not len(data['phone_no'].strip()):
             raise validate.ValidationError(
-                'At least one of the phone number or the email must be provided.')
-        elif len(data) < 1:
-            raise validate.ValidationError(
-                'At least one attribute value must be provided.')
+                'A value must be provided for at least one of email and phone_no.')
 
     @decorators.post_load
     def post_load(self, data):
@@ -67,13 +77,11 @@ class ContactSchema(Schema):
 
         Also, strips leading and trailing whitespace from the string fields.
         """
-        if 'type' in data:
-            data['type'] = Contact.NAMES_TO_TYPES[data['type']]
+        data['type'] = Contact.NAMES_TO_TYPES[data['type']]
 
         fields_to_strip = ('phone_no', 'email')
         for name in fields_to_strip:
-            if name in data:
-                data[name] = data[name].strip()
+            data[name] = data[name].strip()
 
         return data
 

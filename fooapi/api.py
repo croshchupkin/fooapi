@@ -18,6 +18,7 @@ from fooapi.db_interaction import (
     update_contact)
 from fooapi.schemata import LimitOffsetSchema, UserSchema, ContactSchema
 from fooapi.models import Contact
+from fooapi.utils import validation_errors_to_unicode_message
 
 
 api = Api(prefix='/api')
@@ -70,7 +71,7 @@ class UserContacts(Resource):
     @api.doc(parser=contact_parser)
     def post(self, user_id):
         # try:
-            res = ContactSchema(context={'is_POST': True}).load(request.form)
+            res = ContactSchema().load(request.form)
             new_id = add_user_contact(user_id, res.data)
             return {'result': {'contact_id': new_id}}, 201
         # except ValidationError as e:
@@ -125,4 +126,4 @@ def handle(e):
     # that flask_restplus.api.Api.handle_error() looks for, so if we don't
     # delete it here, the end response will not contain the correct information.
     del e.data
-    return e.messages, 400
+    return {'message': validation_errors_to_unicode_message(e.messages)}, 400

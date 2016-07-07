@@ -11,7 +11,7 @@ db = SQLAlchemy()
 class SetFieldsMixin(object):
     def set_fields(self, data):
         for name, val in data.iteritems():
-            setattr(name, val)
+            setattr(self, name, val)
 
 
 class Contact(db.Model, SetFieldsMixin):
@@ -28,8 +28,8 @@ class Contact(db.Model, SetFieldsMixin):
     NAMES_TO_TYPES = {v:k for k,v in TYPES_TO_NAMES.iteritems()}
 
     id = db.Column(db.Integer(), primary_key=True)
-    phone_no = db.Column(db.String(30), default=None)
-    email = db.Column(db.String(128), default=None)
+    phone_no = db.Column(db.String(30), nullable=False, default='')
+    email = db.Column(db.String(128), nullable=False, default='')
     created_at = db.Column(db.DateTime(), default=datetime.utcnow, index=True,
                            nullable=False)
     type = db.Column(db.SmallInteger(), nullable=False, default=TYPE_OTHER)

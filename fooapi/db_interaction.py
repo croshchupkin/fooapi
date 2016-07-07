@@ -21,7 +21,7 @@ def get_users_list(limit=None, offset=None):
 
 
 def get_single_user(user_id):
-    return User.query.options(db.joinedload()).get_or_404(user_id)
+    return User.query.options(db.joinedload(User.contacts)).get_or_404(user_id)
 
 
 def add_user(data):
