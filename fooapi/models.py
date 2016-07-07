@@ -56,6 +56,7 @@ class User(db.Model, SetFieldsMixin):
     name = db.Column(db.Unicode(128), nullable=False)
     created_at = db.Column(db.DateTime(), default=datetime.utcnow, index=True,
                            nullable=False)
+    creator_email = db.Column(db.String(128), nullable=False)
     contacts = db.relationship('Contact', backref='user',
                                order_by=Contact.created_at,
                                cascade='all, delete-orphan',

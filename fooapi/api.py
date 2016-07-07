@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from flask import request
-from flask_restplus import Api
-from flask_restplus import Resource
+from flask_restplus import Api, Resource
 from marshmallow.validate import ValidationError
+from oauth2client.client import AccessTokenCredentialsError
 
 from fooapi.db_interaction import (
     get_users_list,
@@ -25,14 +25,21 @@ api = Api(prefix='/api')
 
 
 # these parsers are here only for the purposes of Swagger UI generation
+auth_parser = api.parser()
+auth_parser.add_argument('X-Access-Token', type=str,location='headers')
+
 user_parser = api.parser()
 user_parser.add_argument('name', type=unicode, location='form')
+
+auth_user_parser = user_parser.copy()
+auth_user_parser.add_argument('X-Access-Token', type=str,location='headers')
 
 contact_parser = api.parser()
 contact_parser.add_argument('phone_no', type=str, location='form')
 contact_parser.add_argument('email', type=str, location='form')
 contact_parser.add_argument('type', type=str, location='form',
                             choices=Contact.NAMES_TO_TYPES.keys())
+contact_parser.add_argument('X-Access-Token', type=str, location='headers')
 
 list_parser = api.parser()
 list_parser.add_argument('limit', type=int, location='args')
@@ -70,13 +77,11 @@ class UserContacts(Resource):
 
     @api.doc(parser=contact_parser)
     def post(self, user_id):
-        # try:
-            res = ContactSchema().load(request.form)
-            new_id = add_user_contact(user_id, res.data)
-            return {'result': {'contact_id': new_id}}, 201
-        # except ValidationError as e:
-        #     return e.messages, 400
+        res = ContactSchema().load(request.form)
+        new_id = add_user_contact(user_id, res.data)
+        return {'result': {'contact_id': new_id}}, 201
 
+    @api.doc(parser=auth_parser)
     def delete(self, user_id):
         delete_all_user_contacts(user_id)
         return '', 204
@@ -90,12 +95,13 @@ class SingleUser(Resource):
             'result': UserSchema().dump(user).data
         }
 
-    @api.doc(parser=user_parser)
+    @api.doc(parser=auth_user_parser)
     def put(self, user_id):
         res = UserSchema().load(request.form)
         update_user(user_id, res.data)
         return '', 204
 
+    @api.doc(parser=auth_parser)
     def delete(self, user_id):
         delete_user(user_id)
         return '', 204
@@ -115,15 +121,21 @@ class SingleContact(Resource):
         update_contact(contact_id, res.data)
         return '', 204
 
+    @api.doc(parser=auth_parser)
     def delete(self, contact_id):
         delete_contact(contact_id)
         return '', 204
 
 
 @api.errorhandler(ValidationError)
-def handle(e):
+def handle_validation_errors(e):
     # The ValidationError's `data` attribute clashes with the `data` attaribute
     # that flask_restplus.api.Api.handle_error() looks for, so if we don't
     # delete it here, the end response will not contain the correct information.
     del e.data
     return {'message': validation_errors_to_unicode_message(e.messages)}, 400
+
+
+@api.errorhandler(AccessTokenCredentialsError)
+def handle_credentials_errors(e):
+    return {'message': e.message}

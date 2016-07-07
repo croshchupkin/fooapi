@@ -38,6 +38,14 @@ class LimitOffsetSchema(Schema):
     offset = fields.Integer(missing=None, validate=validate.Range(min=1))
 
 
+class AccessTokenSchema(Schema):
+    x_access_token = fields.String(required=True, validate=validate.Length(min=1))
+
+    class Meta(object):
+        load_only = True
+        strict = True
+
+
 class ContactSchema(Schema):
     id = fields.Integer(dump_only=True)
     phone_no = fields.String(
