@@ -64,8 +64,9 @@ class User(db.Model, SetFieldsMixin):
 
     def __repr__(self):
         return ('<User id={id}, name={name}, created_at={created_at}, '
-                'contacts=[{contacts}]>').format(
+                'creator_email={creator_email}, contacts=[{contacts}]>').format(
                     id=self.id,
                     name=self.name,
                     created_at=utils.isoformat(self.created_at),
+                    creator_email=self.creator_email,
                     contacts=', '.join((repr(c) for c in self.contacts)))

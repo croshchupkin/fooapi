@@ -16,7 +16,17 @@ from fooapi.db_interaction import (
     delete_all_user_contacts,
     get_single_contact,
     update_contact)
-from fooapi.schemata import LimitOffsetSchema, UserSchema, ContactSchema
+from fooapi.auth_utils import (
+    AccessDeniedException,
+    UserProfileAccessException,
+    get_email,
+    ensure_can_edit_user,
+    ensure_can_edit_contact)
+from fooapi.schemata import (
+    LimitOffsetSchema,
+    UserSchema,
+    ContactSchema,
+    AccessTokenSchema)
 from fooapi.models import Contact
 from fooapi.utils import validation_errors_to_unicode_message
 
@@ -30,9 +40,7 @@ auth_parser.add_argument('X-Access-Token', type=str,location='headers')
 
 user_parser = api.parser()
 user_parser.add_argument('name', type=unicode, location='form')
-
-auth_user_parser = user_parser.copy()
-auth_user_parser.add_argument('X-Access-Token', type=str,location='headers')
+user_parser.add_argument('X-Access-Token', type=str,location='headers')
 
 contact_parser = api.parser()
 contact_parser.add_argument('phone_no', type=str, location='form')
@@ -59,8 +67,12 @@ class Users(Resource):
 
     @api.doc(parser=user_parser)
     def post(self):
-        res = UserSchema().load(request.form)
-        new_id = add_user(res.data)
+        form_res = UserSchema().load(request.form)
+        header_res = AccessTokenSchema().load(request.headers)
+        data = {}
+        data.update(form_res.data)
+        data['creator_email'] = get_email(header_res.data['x_access_token'])
+        new_id = add_user(data)
         return {'result': {'user_id': new_id}}, 201
 
 
@@ -77,12 +89,16 @@ class UserContacts(Resource):
 
     @api.doc(parser=contact_parser)
     def post(self, user_id):
-        res = ContactSchema().load(request.form)
-        new_id = add_user_contact(user_id, res.data)
+        form_res = ContactSchema().load(request.form)
+        header_res = AccessTokenSchema().load(request.headers)
+        ensure_can_edit_user(user_id, header_res.data['x_access_token'])
+        new_id = add_user_contact(user_id, form_res.data)
         return {'result': {'contact_id': new_id}}, 201
 
     @api.doc(parser=auth_parser)
     def delete(self, user_id):
+        res = AccessTokenSchema().load(request.headers)
+        ensure_can_edit_user(user_id, res.data['x_access_token'])
         delete_all_user_contacts(user_id)
         return '', 204
 
@@ -95,14 +111,18 @@ class SingleUser(Resource):
             'result': UserSchema().dump(user).data
         }
 
-    @api.doc(parser=auth_user_parser)
+    @api.doc(parser=user_parser)
     def put(self, user_id):
-        res = UserSchema().load(request.form)
-        update_user(user_id, res.data)
+        form_res = UserSchema().load(request.form)
+        header_res = AccessTokenSchema().load(request.headers)
+        ensure_can_edit_user(user_id, header_res.data['x_access_token'])
+        update_user(user_id, form_res.data)
         return '', 204
 
     @api.doc(parser=auth_parser)
     def delete(self, user_id):
+        res = AccessTokenSchema().load(request.headers)
+        ensure_can_edit_user(user_id, res.data['x_access_token'])
         delete_user(user_id)
         return '', 204
 
@@ -117,12 +137,16 @@ class SingleContact(Resource):
 
     @api.doc(parser=contact_parser)
     def put(self, contact_id):
-        res = ContactSchema().load(request.form)
-        update_contact(contact_id, res.data)
+        form_res = ContactSchema().load(request.form)
+        header_res = AccessTokenSchema().load(request.headers)
+        ensure_can_edit_contact(contact_id, header_res.data['x_access_token'])
+        update_contact(contact_id, form_res.data)
         return '', 204
 
     @api.doc(parser=auth_parser)
     def delete(self, contact_id):
+        res = AccessTokenSchema().load(request.headers)
+        ensure_can_edit_contact(contact_id, res.data['x_access_token'])
         delete_contact(contact_id)
         return '', 204
 
@@ -138,4 +162,14 @@ def handle_validation_errors(e):
 
 @api.errorhandler(AccessTokenCredentialsError)
 def handle_credentials_errors(e):
-    return {'message': e.message}
+    return {'message': e.message}, 401
+
+
+@api.errorhandler(AccessDeniedException)
+def handle_access_denied(e):
+    return {'message': e.message}, 403
+
+
+@api.errorhandler(UserProfileAccessException)
+def handle_user_profile_access_error(e):
+    return {'message': e.message}, 401

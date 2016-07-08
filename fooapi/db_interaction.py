@@ -77,8 +77,14 @@ def delete_all_user_contacts(user_id):
     db.session.commit()
 
 
-def get_single_contact(contact_id):
-    return Contact.query.get_or_404(contact_id)
+def get_single_contact(contact_id, join_user=False):
+    if join_user:
+        return Contact\
+            .query\
+            .options(db.joinedload(Contact.user))\
+            .get_or_404(contact_id)
+    else:
+        return Contact.query.get_or_404(contact_id)
 
 
 def update_contact(contact_id, data):

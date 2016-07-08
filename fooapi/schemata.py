@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from flask import current_app
 from marshmallow import Schema, fields, validate, decorators
 import phonenumbers
 
@@ -39,10 +38,9 @@ class LimitOffsetSchema(Schema):
 
 
 class AccessTokenSchema(Schema):
-    x_access_token = fields.String(required=True, validate=validate.Length(min=1))
+    x_access_token = fields.String(load_only=True, required=True, validate=validate.Length(min=1))
 
     class Meta(object):
-        load_only = True
         strict = True
 
 
